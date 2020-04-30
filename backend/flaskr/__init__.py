@@ -8,6 +8,15 @@ from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
+# helper function - handles pagination
+def paginate_questions(request, selection):
+  page = request.args.get('page', 1, type=int)
+  start = (page - 1) * QUESTIONS_PER_PAGE
+  end = start + QUESTIONS_PER_PAGE
+  questions = [question.format() for question in selection]
+  current_questions = questions[start:end]
+  return current_questions
+
 def create_app(test_config=None):
   # create and configure the app
   app = Flask(__name__)
@@ -30,15 +39,13 @@ def create_app(test_config=None):
       'success': True
     })
 
-  '''
-  @TODO: 
-  Create an endpoint to handle GET requests 
-  for all available categories.
-  '''
   @app.route('/categories', methods=['GET'])
   def get_categories():
+    # get all categories and re-format the collection into a dictionary
     categories = Category.query.all()
-    formatted_categories = [category.format() for category in categories]
+    formatted_categories = {}
+    for category in categories:
+      formatted_categories[category.id] = category.type
 
     return jsonify({
       'success': True,
@@ -47,18 +54,27 @@ def create_app(test_config=None):
     })
 
 
-  '''
-  @TODO: 
-  Create an endpoint to handle GET requests for questions, 
-  including pagination (every 10 questions). 
-  This endpoint should return a list of questions, 
-  number of total questions, current category, categories. 
+  @app.route('/questions', methods=['GET'])
+  def get_questions():
+    # get all questions and use the pagination helper func to break
+    # into blocks of content
+    all_questions = Question.query.all()
+    current_questions = paginate_questions(request, all_questions)
+    total_questions = len(all_questions)
 
-  TEST: At this point, when you start the application
-  you should see questions and categories generated,
-  ten questions per page and pagination at the bottom of the screen for three pages.
-  Clicking on the page numbers should update the questions. 
-  '''
+    # get all categories and re-format the collection into a dictionary
+    categories = Category.query.all()
+    formatted_categories = {}
+    for category in categories:
+      formatted_categories[category.id] = category.type
+
+    return jsonify({
+      'success': True,
+      'questions': current_questions,
+      'total_questions': total_questions,
+      'categories': formatted_categories
+    })
+
 
   '''
   @TODO: 
