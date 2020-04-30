@@ -53,7 +53,6 @@ def create_app(test_config=None):
       'total_categories': len(categories)
     })
 
-
   @app.route('/questions', methods=['GET'])
   def get_questions():
     # get all questions and use the pagination helper func to break
@@ -75,14 +74,22 @@ def create_app(test_config=None):
       'categories': formatted_categories
     })
 
+  @app.route('/question/<int:question_id>', methods=['DELETE'])
+  def delete_question(question_id):
+    try:
+      question = Question.query.filter_by(id=question_id).one_or_none()
 
-  '''
-  @TODO: 
-  Create an endpoint to DELETE question using a question ID. 
+      if question is None:
+        abort(404)
 
-  TEST: When you click the trash icon next to a question, the question will be removed.
-  This removal will persist in the database and when you refresh the page. 
-  '''
+      question.delete()
+
+      return jsonify({
+        'success': True,
+        'deleted': question_id
+      })
+    except:
+      abort(422)
 
   '''
   @TODO: 
@@ -106,15 +113,20 @@ def create_app(test_config=None):
   Try using the word "title" to start. 
   '''
 
-  '''
-  @TODO: 
-  Create a GET endpoint to get questions based on category. 
 
-  TEST: In the "List" tab / main screen, clicking on one of the 
-  categories in the left column will cause only questions of that 
-  category to be shown. 
-  '''
+  @app.route('/category/<int:category_id>/questions', methods=['GET'])
+  def get_questions_by_category(category_id):
+    # get all questions that share the category_id
+    questions = Question.query.filter_by(category=category_id).all()
+    # setup pagination using the helper
+    # function and store block of content under current questions
+    current_questions = paginate_questions(request, questions)
 
+    return jsonify({
+      'success': True,
+      'questions': current_questions,
+      'total_questions': len(questions),
+    })
 
   '''
   @TODO: 
