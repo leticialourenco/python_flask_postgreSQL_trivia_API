@@ -29,15 +29,8 @@ def create_app(test_config=None):
   @app.after_request
   def after_request(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PATCH,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,DELETE')
     return response
-
-  @app.route("/")
-  # @cross_origin()
-  def index():
-    return jsonify({
-      'success': True
-    })
 
   @app.route('/categories', methods=['GET'])
   def get_categories():
@@ -46,6 +39,9 @@ def create_app(test_config=None):
     formatted_categories = {}
     for category in categories:
       formatted_categories[category.id] = category.type
+
+    if not categories:
+      abort(404)
 
     return jsonify({
       'success': True,
@@ -67,6 +63,9 @@ def create_app(test_config=None):
     for category in categories:
       formatted_categories[category.id] = category.type
 
+    if not all_questions:
+      abort(404)
+
     return jsonify({
       'success': True,
       'questions': current_questions,
@@ -74,7 +73,7 @@ def create_app(test_config=None):
       'categories': formatted_categories
     })
 
-  @app.route('/question/<int:question_id>', methods=['DELETE'])
+  @app.route('/questions/<int:question_id>', methods=['DELETE'])
   def delete_question(question_id):
     try:
       question = Question.query.filter_by(id=question_id).one_or_none()
@@ -91,16 +90,21 @@ def create_app(test_config=None):
     except:
       abort(422)
 
-  @app.route('/add', methods=['POST'])
+  @app.route('/questions/create', methods=['POST'])
   def add_question():
     try:
       # get data from the form request
       data = request.get_json()
+
       # populate variables with retrieved information
       question_field = data['question']
       answer = data['answer']
       difficulty = data['difficulty']
       category = data['category']
+
+      if (question_field is None) or (answer is None) or (difficulty is None) or (category is None):
+        abort(422)
+
       # assign values to create a Question objects
       question = Question(
         question=question_field, answer=answer,
@@ -108,8 +112,10 @@ def create_app(test_config=None):
       )
       # insert new question into database
       question.insert()
+
       return jsonify({
-        'success': True
+        'success': True,
+        'question': question.format()
       })
     except:
       abort(422)
@@ -126,19 +132,25 @@ def create_app(test_config=None):
     # into blocks of content
     current_questions = paginate_questions(request, questions)
 
+    if not questions:
+      abort(404)
+
     return jsonify({
       'success': True,
       'questions': current_questions,
       'total_questions': len(questions)
     })
 
-  @app.route('/category/<int:category_id>/questions', methods=['GET'])
+  @app.route('/categories/<int:category_id>/questions', methods=['GET'])
   def get_questions_by_category(category_id):
     # get all questions that share the category_id
     questions = Question.query.filter_by(category=category_id).all()
     # setup pagination using the helper
     # function and store block of content under current questions
     current_questions = paginate_questions(request, questions)
+
+    if not questions:
+      abort(400)
 
     return jsonify({
       'success': True,
@@ -152,6 +164,9 @@ def create_app(test_config=None):
     body = request.get_json()
     category = body['quiz_category']
     previous_questions = body['previous_questions']
+
+    if (category is None) or (previous_questions is None):
+      abort(400)
 
     # loads all questions in case category is ALL
     # or filter it by category in case it has one
@@ -188,10 +203,28 @@ def create_app(test_config=None):
       'question': question.format()
     })
 
-  '''
-  @TODO: 
-  Create error handlers for all expected errors 
-  including 404 and 422. 
-  '''
+  @app.errorhandler(400)
+  def bad_request(error):
+    return jsonify({
+      "success": False,
+      "error": 400,
+      "message": "bad request"
+    }), 400
+
+  @app.errorhandler(404)
+  def not_found(error):
+    return jsonify({
+      "success": False,
+      "error": 404,
+      "message": "resource not found"
+    }), 404
+
+  @app.errorhandler(422)
+  def unprocessable(error):
+    return jsonify({
+      "success": False,
+      "error": 422,
+      "message": "unprocessable"
+    }), 422
   
   return app
