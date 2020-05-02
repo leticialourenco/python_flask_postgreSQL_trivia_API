@@ -63,7 +63,7 @@ def create_app(test_config=None):
     for category in categories:
       formatted_categories[category.id] = category.type
 
-    if not all_questions:
+    if not current_questions:
       abort(404)
 
     return jsonify({
@@ -77,10 +77,6 @@ def create_app(test_config=None):
   def delete_question(question_id):
     try:
       question = Question.query.filter_by(id=question_id).one_or_none()
-
-      if question is None:
-        abort(404)
-
       question.delete()
 
       return jsonify({
@@ -175,6 +171,9 @@ def create_app(test_config=None):
       questions = Question.query.all()
     else:
       questions = Question.query.filter_by(category=category['id']).all()
+
+    if not questions:
+      abort(422)
 
     question = {}
     used_question = True

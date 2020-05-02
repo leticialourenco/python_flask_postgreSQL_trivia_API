@@ -48,6 +48,15 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True)
 
+    def test_404_get_questions(self):
+        # sends out of range page request
+        response = self.client().get('/questions?page=50')
+        data = json.loads(response.data)
+
+        # check response message and its code
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(data['success'], False)
+
     def test_delete_question(self):
         # manually create a question to later be deleted
         new_question = Question(question="1 + 1 = ?", answer="2", category="1", difficulty="1")
@@ -75,6 +84,15 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True)
 
+    def test_422_delete_question(self):
+        # send a bad request trying to delete a question that doesn't exist
+        response = self.client().delete('/questions/398471893')
+        data = json.loads(response.data)
+
+        # check response message and its code
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+
     def test_add_question(self):
         # get all questions before adding a sample one
         all_questions = Question.query.all()
@@ -99,6 +117,16 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True)
 
+    def test_422_add_question(self):
+        # send a bad request trying to add a question with missing data (no difficulty)
+        new_question = {"question": "1 + 1 = ?", "answer": "2", "category": "1"}
+        response = self.client().post('/questions/create', json=new_question)
+        data = json.loads(response.data)
+
+        # check response message and its code
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+
     def test_get_questions_by_search(self):
         # send a post request with a search term
         response = self.client().post('/questions', json={'searchTerm': 'What'})
@@ -110,6 +138,15 @@ class TriviaTestCase(unittest.TestCase):
         # check response message and its code
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True)
+
+    def test_404_get_questions_by_search(self):
+        # send a search term that doesnt belong within any question
+        response = self.client().post('/questions', json={'searchTerm': 'loremipsumdolorsitamet'})
+        data = json.loads(response.data)
+
+        # check response message and its code
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(data['success'], False)
 
     def test_get_questions_by_category(self):
         # send a request of category id=1
@@ -123,6 +160,15 @@ class TriviaTestCase(unittest.TestCase):
         # check response message and its code
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True)
+
+    def test_400_get_questions_by_category(self):
+        # send a bad request with category id non-existent
+        response = self.client().get('/categories/50/questions')
+        data = json.loads(response.data)
+
+        # check response message and its code
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['success'], False)
 
     def test_play_quiz_with_category(self):
         # send a request containing quiz_category and previous_questions
@@ -152,6 +198,16 @@ class TriviaTestCase(unittest.TestCase):
         # check response message and its code
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True)
+
+    def test_422_play_quiz(self):
+        # send a request with invalid quiz_category id - unable to load questions
+        quiz = {'quiz_category': {'id': 50, 'type': 'Monkey Anthropology'}, 'previous_questions': []}
+        response = self.client().post('/quizzes', json=quiz)
+        data = json.loads(response.data)
+
+        # check response message and its code
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
 
 if __name__ == "__main__":
     unittest.main()
