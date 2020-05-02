@@ -156,6 +156,7 @@ def create_app(test_config=None):
       'success': True,
       'questions': current_questions,
       'total_questions': len(questions),
+      'current_category': str(category_id)
     })
 
   @app.route('/quizzes', methods=['POST'])
