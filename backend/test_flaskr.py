@@ -92,13 +92,16 @@ class TriviaTestCase(unittest.TestCase):
         # asserts that length of all questions has increased by 1
         self.assertEqual(num_questions_before, (num_questions_after-1))
 
+        # delete created question
+        self.client().delete('/questions/{}'.format(data['question']['id']))
+
         # check response message and its code
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True)
 
     def test_get_questions_by_search(self):
         # send a post request with a search term
-        response = self.client().post('/questions', json={'searchTerm': '1 + 1'})
+        response = self.client().post('/questions', json={'searchTerm': 'What'})
         data = json.loads(response.data)
 
         # check that there are results
